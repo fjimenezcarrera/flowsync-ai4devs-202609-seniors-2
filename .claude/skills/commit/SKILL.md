@@ -1,7 +1,6 @@
 ---
 name: commit
-description: Genera un commit convencional a partir de los cambios staged. Usar al
-cerrar una tarea.
+description: Genera un commit convencional a partir de los cambios staged. Usar al cerrar una tarea.
 ---
 # Commit convencional
 1. Ejecuta `git diff --staged` y resume el cambio.
