@@ -7,9 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 FlowSync: gestión de tareas en equipo (proyecto de práctica del curso AI4Devs). Monorepo sin workspaces con dos apps independientes, cada una con su propio `package.json` y `node_modules`:
 
 - `backend/` — API REST en AdonisJS 7 + Lucid (SQLite vía `better-sqlite3`), puerto 3333.
-- `frontend/` — React 19 + Vite 8 + TypeScript, puerto 5173. Ahora mismo es la plantilla por defecto de Vite (`src/App.tsx`); todavía no consume la API.
+- `frontend/` — React 19 + Vite 8 + TypeScript + Tailwind v4 + shadcn/ui, puerto 5173. Consume la API de autenticación (login, registro, perfil).
 
-Lo único construido es el andamiaje de autenticación. No existe aún nada del dominio (tareas, proyectos, equipos). La documentación del proyecto y los PRD van en español (`doc/prd/`).
+Lo único construido es la autenticación (backend y frontend). No existe aún nada del dominio (tareas, proyectos, equipos). La documentación del proyecto y los PRD van en español (`doc/prd/`).
 
 ## Comandos
 
@@ -39,6 +39,15 @@ npm run format    # prettier (sin punto y coma, comillas simples)
 ```
 
 El frontend no tiene runner de tests. Un hook `PostToolUse` de Claude Code (`.claude/settings.json` → `.claude/hooks/format-frontend.sh`) pasa Prettier a cada archivo de `frontend/` que se edita.
+
+## Arquitectura del frontend
+
+- **Alias** `@/*` → `src/*` (en `tsconfig*.json` y `vite.config.ts`).
+- **UI**: componentes de shadcn/ui en `src/components/ui/` (generados con `npx shadcn@latest add <componente>`; no editar salvo necesidad). `cn()` viene del paquete `cn` vía `src/lib/utils.ts`.
+- **API**: `src/lib/api.ts` es un wrapper de `fetch` sobre `VITE_API_URL` (por defecto `http://localhost:3333`) que desenvuelve `{ data }` y lanza `ApiError` (estado no 2xx) o `NetworkError`. Los tipos de respuesta están escritos a mano en `src/lib/types.ts`; no se usa el registro de Tuyau del backend (sus imports `#...` no resuelven desde el frontend).
+- **Errores**: `src/lib/errors.ts` traduce los errores de la API a mensajes en español (`toFormErrors`) y replica las reglas de validación del backend para validar en cliente.
+- **Sesión**: `src/auth/` guarda el token opaco en `localStorage` (`flowsync.token`) y lo expone con `useAuth()`. `RequireAuth` y `GuestOnly` protegen las rutas. Un 401 en la vista protegida limpia la sesión.
+- **Rutas** (`react-router`, en `src/App.tsx`): `/` (perfil, protegida), `/login` y `/signup`.
 
 ## Arquitectura del backend
 
