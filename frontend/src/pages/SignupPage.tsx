@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from '@/auth/context'
 import { AuthLayout } from '@/components/AuthLayout'
@@ -21,9 +21,12 @@ export function SignupPage() {
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [errors, setErrors] = useState<FormErrors>({ fields: {} })
   const [submitting, setSubmitting] = useState(false)
+  // El estado no se refleja hasta el siguiente render: el ref evita un doble envío.
+  const inFlight = useRef(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (inFlight.current) return
 
     const fields = {
       email: validateEmail(email),
@@ -39,6 +42,7 @@ export function SignupPage() {
     }
 
     setErrors({ fields: {} })
+    inFlight.current = true
     setSubmitting(true)
     try {
       // Al guardarse el token, <GuestOnly> redirige a la vista protegida.
@@ -50,6 +54,7 @@ export function SignupPage() {
       })
     } catch (error) {
       setErrors(toFormErrors(error))
+      inFlight.current = false
       setSubmitting(false)
     }
   }

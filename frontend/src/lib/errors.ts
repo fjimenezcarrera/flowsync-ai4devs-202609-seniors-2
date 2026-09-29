@@ -50,7 +50,8 @@ export function toFormErrors(error: unknown): FormErrors {
   }
 
   if (error instanceof ApiError) {
-    if (error.status === 400 || error.status === 401) {
+    // Único 400 que devuelven login/signup: E_INVALID_CREDENTIALS.
+    if (error.status === 400) {
       return { form: 'Email o contraseña incorrectos.', fields: {} }
     }
 
