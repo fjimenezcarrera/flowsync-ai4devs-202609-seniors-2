@@ -18,8 +18,10 @@ test.group('Tasks | responsable', (group) => {
   group.each.setup(() => testUtils.db().withGlobalTransaction())
 
   /**
-   * El día de referencia que exige la consulta de una tarea suelta. Su valor no
-   * importa aquí: ninguna tarea de estos tests tiene fecha de vencimiento.
+   * El día de referencia que exigen la consulta de una tarea suelta y el cambio
+   * de fecha. Su valor no importa aquí: lo que se mira es el responsable, y la
+   * única fecha que se fija es este mismo día, para no depender de ninguna
+   * regla sobre fechas pasadas o futuras.
    */
   const today = '2026-10-08'
 
@@ -96,7 +98,7 @@ test.group('Tasks | responsable', (group) => {
       .header('Authorization', auth)
     const conFecha = await client
       .put(`/api/v1/tasks/${task.id}/due-date`)
-      .json({ today, dueDate: '2026-10-20' })
+      .json({ today, dueDate: today })
       .header('Authorization', auth)
 
     const respuestas = {
@@ -107,8 +109,8 @@ test.group('Tasks | responsable', (group) => {
       'PUT /tasks/:id/due-date': conFecha,
     }
 
-    for (const response of Object.values(respuestas)) {
-      assert.oneOf(response.status(), [200, 201])
+    for (const [ruta, response] of Object.entries(respuestas)) {
+      assert.oneOf(response.status(), [200, 201], `${ruta} no respondió con éxito`)
     }
 
     const assigneeDe = (body: any) =>
@@ -122,7 +124,9 @@ test.group('Tasks | responsable', (group) => {
         Object.keys(assigneeDe(response.body())).sort(),
       ])
     )
-    const permitidos = ['fullName', 'id', 'initials']
+    // La spec pide «el nombre y las iniciales» y ningún otro dato de la cuenta:
+    // el `id` de la cuenta también es otro dato, así que tampoco se admite.
+    const permitidos = ['fullName', 'initials']
 
     assert.deepEqual(
       camposPorRuta,
@@ -150,7 +154,10 @@ test.group('Tasks | responsable', (group) => {
 
     const enLista = enLaLista(lista.body(), task.id)
     assert.isNull(enLista.assignee.fullName)
-    assert.equal(enLista.assignee.initials, 'AE')
+    // La spec solo pide que las iniciales sigan llegando; cómo se derivan ya lo
+    // cubre `tests/functional/auth/initials.spec.ts`.
+    assert.isString(enLista.assignee.initials)
+    assert.isNotEmpty(enLista.assignee.initials)
 
     const suelta = await client
       .get(`/api/v1/tasks/${task.id}`)
@@ -159,6 +166,7 @@ test.group('Tasks | responsable', (group) => {
     suelta.assertStatus(200)
 
     assert.isNull(suelta.body().data.assignee.fullName)
-    assert.equal(suelta.body().data.assignee.initials, 'AE')
+    assert.isString(suelta.body().data.assignee.initials)
+    assert.isNotEmpty(suelta.body().data.assignee.initials)
   })
 })
