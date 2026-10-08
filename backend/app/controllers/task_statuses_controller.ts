@@ -2,7 +2,21 @@ import Task from '#models/task'
 import { updateTaskStatusValidator } from '#validators/task'
 import type { HttpContext } from '@adonisjs/core/http'
 import TaskTransformer from '#transformers/task_transformer'
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@foadonis/openapi/decorators'
+import {
+  NotFoundResponse,
+  TaskResponse,
+  UnauthorizedResponse,
+  UpdateTaskStatusBody,
+  ValidationErrorResponse,
+} from '#openapi/schemas'
 
+@ApiBearerAuth()
+@ApiResponse({
+  status: 401,
+  description: 'Falta el token o no es válido.',
+  type: UnauthorizedResponse,
+})
 export default class TaskStatusesController {
   /**
    * El estado es lo único mutable de una tarea en este momento, y por eso
@@ -15,6 +29,19 @@ export default class TaskStatusesController {
    * prohibidas: volver de «hecho» a «pendiente» es justamente lo que arregla
    * un clic dado por error.
    */
+  @ApiOperation({ summary: 'Cambiar el estado de cualquier tarea' })
+  @ApiBody({ required: true, type: UpdateTaskStatusBody })
+  @ApiResponse({ status: 200, description: 'La tarea ya con el estado nuevo.', type: TaskResponse })
+  @ApiResponse({
+    status: 404,
+    description: 'La tarea no existe. Se comprueba antes que el cuerpo.',
+    type: NotFoundResponse,
+  })
+  @ApiResponse({
+    status: 422,
+    description: 'El estado no es ninguno de los tres.',
+    type: ValidationErrorResponse,
+  })
   async update({ params, request, serialize }: HttpContext) {
     const task = await Task.findOrFail(params.id)
     const { status } = await request.validateUsing(updateTaskStatusValidator)
