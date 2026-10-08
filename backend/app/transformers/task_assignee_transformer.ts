@@ -12,6 +12,6 @@ import { BaseTransformer } from '@adonisjs/core/transformers'
  */
 export default class TaskAssigneeTransformer extends BaseTransformer<User> {
   toObject() {
-    return this.pick(this.resource, ['id', 'fullName', 'initials'])
+    return this.pick(this.resource, ['fullName', 'initials'])
   }
 }
